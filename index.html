@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌾 Cozy Farm</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game">
+
+    <!-- Header -->
+    <header>
+      <div class="header-title">🌾 Cozy Farm</div>
+      <div class="header-stats">
+        <div class="stat">💰 <span id="stat-coins">50</span></div>
+        <div class="stat">📅 Day <span id="stat-day">1</span></div>
+        <div class="stat"><span id="stat-time">🌅 Dawn</span></div>
+      </div>
+    </header>
+
+    <!-- Tabs -->
+    <nav class="tabs">
+      <button class="tab active" data-tab="farm">🌱 Farm</button>
+      <button class="tab" data-tab="store">🏪 Store</button>
+      <button class="tab" data-tab="bag">🎒 Bag</button>
+    </nav>
+
+    <!-- Farm Tab -->
+    <section id="tab-farm" class="tab-content active">
+      <div class="holding-bar">
+        <span id="holding-label">Holding: Nothing</span>
+        <button id="btn-clear-seed" class="small-btn" style="display:none">✕</button>
+        <button id="btn-sell-all" class="gold-btn">💰 Sell All</button>
+      </div>
+      <div id="farm-grid" class="farm-grid"></div>
+      <div id="farm-hint" class="farm-hint"></div>
+    </section>
+
+    <!-- Store Tab -->
+    <section id="tab-store" class="tab-content">
+      <div class="store-section">
+        <h3>🌾 Seeds</h3>
+        <div id="seed-shop" class="seed-grid"></div>
+      </div>
+      <div class="store-section">
+        <div class="upg-header">
+          <h3>⚙️ Upgrades</h3>
+          <span class="speed-badge">Growth speed: <strong id="stat-speed">1×</strong></span>
+        </div>
+        <div id="upgrade-shop"></div>
+      </div>
+    </section>
+
+    <!-- Bag Tab -->
+    <section id="tab-bag" class="tab-content">
+      <h3 class="section-title">🎒 Harvest Bag</h3>
+      <div id="bag-contents"></div>
+      <div class="bag-stats">
+        <div>💰 Total earned: <strong><span id="stat-total-earned">0</span></strong></div>
+        <div>🌾 Total harvested: <strong><span id="stat-total-harvested">0</span></strong></div>
+      </div>
+    </section>
+
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <script src="game.js"></script>
+</body>
+</html>
