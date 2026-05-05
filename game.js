@@ -148,17 +148,17 @@ function genQuests() {
   const avail = REGULAR_CROPS.filter(id => isUnlocked(id));
   if (!avail.length) return [];
   const pool = [...avail].sort(() => Math.random() - .5);
-  return pool.slice(0, Math.min(3, pool.length)).map(cropId => ({
-    cropId,
-    qty: Math.floor(Math.random() * 4) + 2,
-    reward: Math.round(CROPS[cropId].sellPrice * (Math.floor(Math.random() * 4) + 2) * 1.6),
-    done: false,
-  }));
+  return pool.slice(0, Math.min(3, pool.length)).map(cropId => {
+    const qty    = Math.floor(Math.random() * 4) + 2;
+    const reward = Math.round(CROPS[cropId].sellPrice * qty * 1.6);
+    return { cropId, qty, reward, done: false };
+  });
 }
 
 function consumeFromBag(cropId, qty) {
+  if (!state.bag[cropId]) return;
   let rem = qty;
-  const b = state.bag[cropId] || [0,0,0];
+  const b = state.bag[cropId];
   for (let q = 0; q <= 2 && rem > 0; q++) {
     const take = Math.min(b[q], rem);
     b[q] -= take; rem -= take;
@@ -222,6 +222,7 @@ function tick() {
     plot.progress  = Math.min(100, (elapsed / growTime) * 100);
     if (plot.progress >= 100) {
       plot.ready = true;
+      if (plot.quality === undefined) plot.quality = rollQuality();
       if (state.upgrades.autoHarvest) { doHarvest(i); autoHarvested++; }
     }
   });
@@ -245,7 +246,10 @@ function recalculatePlots() {
     const elapsed  = (now - plot.plantedAt) / 1000;
     const growTime = CROPS[plot.crop].growTime / mult;
     plot.progress  = Math.min(100, (elapsed / growTime) * 100);
-    if (plot.progress >= 100) plot.ready = true;
+    if (plot.progress >= 100) {
+      plot.ready = true;
+      if (plot.quality === undefined) plot.quality = rollQuality();
+    }
   });
 }
 
@@ -281,14 +285,16 @@ function doPlant(i) {
   }
   state.plots[i] = { crop:seed, plantedAt:Date.now(), progress:0, ready:false };
   state.seeds[seed]--;
-  spawnPlantEffect(i);
   checkAchievements();
-  render(); saveGame();
+  render();
+  spawnPlantEffect(i); // after render so the class isn't wiped immediately
+  saveGame();
 }
 
 function doHarvest(i) {
-  const crop = state.plots[i].crop;
-  const qi   = rollQuality();
+  const plot = state.plots[i];
+  const crop = plot.crop;
+  const qi   = plot.quality ?? rollQuality();
   if (!state.bag[crop]) state.bag[crop] = [0,0,0];
   state.bag[crop][qi]++;
   state.totalHarvested++;
@@ -698,7 +704,10 @@ function spawnHarvestEffect(plotIdx, qi) {
     s.textContent = emojis[i % emojis.length];
     const angle   = (i / count) * Math.PI * 2;
     const dist    = 50 + Math.random() * 60;
-    s.style.cssText = `left:${cx}px;top:${cy}px;--dx:${Math.cos(angle)*dist}px;--dy:${Math.sin(angle)*dist - 60}px`;
+    s.style.left = cx + 'px';
+    s.style.top  = cy + 'px';
+    s.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+    s.style.setProperty('--dy', (Math.sin(angle) * dist - 60) + 'px');
     document.body.appendChild(s);
     setTimeout(() => s.remove(), 900);
   }
