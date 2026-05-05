@@ -6,10 +6,13 @@
   <title>🌾 Cozy Farm</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="weather-sunny time-dawn">
+
+  <div id="particle-container" aria-hidden="true"></div>
+  <div id="achievement-popup" class="achievement-popup"></div>
+
   <div id="game">
 
-    <!-- Header -->
     <header>
       <div class="header-title">🌾 Cozy Farm</div>
       <div class="header-stats">
@@ -19,11 +22,19 @@
       </div>
     </header>
 
-    <!-- Tabs -->
+    <div class="weather-bar">
+      <div class="weather-now">
+        <span id="weather-current">☀️ Sunny</span>
+        <span id="weather-mult" class="weather-mult"></span>
+      </div>
+      <div class="weather-forecast" id="weather-next">Tomorrow: ⛅ Cloudy</div>
+    </div>
+
     <nav class="tabs">
       <button class="tab active" data-tab="farm">🌱 Farm</button>
       <button class="tab" data-tab="store">🏪 Store</button>
       <button class="tab" data-tab="bag">🎒 Bag</button>
+      <button class="tab" data-tab="goals">📋 Goals</button>
     </nav>
 
     <!-- Farm Tab -->
@@ -33,12 +44,15 @@
         <button id="btn-clear-seed" class="small-btn" style="display:none">✕</button>
         <button id="btn-sell-all" class="gold-btn">💰 Sell All</button>
       </div>
-      <div id="farm-grid" class="farm-grid"></div>
+      <div class="farm-area">
+        <div id="farm-grid" class="farm-grid"></div>
+      </div>
       <div id="farm-hint" class="farm-hint"></div>
     </section>
 
     <!-- Store Tab -->
     <section id="tab-store" class="tab-content">
+      <div id="market-status" class="market-status"></div>
       <div class="store-section">
         <h3>🌾 Seeds</h3>
         <div id="seed-shop" class="seed-grid"></div>
@@ -46,9 +60,14 @@
       <div class="store-section">
         <div class="upg-header">
           <h3>⚙️ Upgrades</h3>
-          <span class="speed-badge">Growth speed: <strong id="stat-speed">1×</strong></span>
+          <span class="speed-badge">Speed: <strong id="stat-speed">1×</strong></span>
         </div>
         <div id="upgrade-shop"></div>
+      </div>
+      <div class="store-section">
+        <h3>⚗️ Crafting Lab</h3>
+        <p class="craft-hint">Use harvested crops from your bag to craft rare hybrid seeds.</p>
+        <div id="craft-shop"></div>
       </div>
     </section>
 
@@ -59,6 +78,20 @@
       <div class="bag-stats">
         <div>💰 Total earned: <strong><span id="stat-total-earned">0</span></strong></div>
         <div>🌾 Total harvested: <strong><span id="stat-total-harvested">0</span></strong></div>
+        <div>🏅 Quests done: <strong><span id="stat-quests">0</span></strong></div>
+        <div>🌟 Golden crops: <strong><span id="stat-golden">0</span></strong></div>
+      </div>
+    </section>
+
+    <!-- Goals Tab -->
+    <section id="tab-goals" class="tab-content">
+      <div class="goals-section">
+        <h3 class="section-title">🤝 Daily Quests <span class="quest-day-label">— refreshes each day</span></h3>
+        <div id="quest-list"></div>
+      </div>
+      <div class="goals-section">
+        <h3 class="section-title">🏆 Achievements</h3>
+        <div id="achievement-list" class="achievement-grid"></div>
       </div>
     </section>
 
