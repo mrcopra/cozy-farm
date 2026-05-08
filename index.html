@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لعبة الحروف</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #1a4a1a;
+    font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    color: #fff;
+  }
+
+  h1 {
+    font-size: 2rem;
+    color: #ffd700;
+    text-shadow: 2px 2px 4px #000;
+    margin-bottom: 10px;
+    letter-spacing: 2px;
+  }
+
+  .subtitle {
+    color: #aaffaa;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+  }
+
+  .scoreboard {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 20px;
+    background: rgba(0,0,0,0.4);
+    padding: 10px 30px;
+    border-radius: 12px;
+    border: 2px solid #ffd700;
+  }
+
+  .score-item {
+    text-align: center;
+  }
+
+  .score-label {
+    font-size: 0.75rem;
+    color: #aaa;
+  }
+
+  .score-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #ffd700;
+  }
+
+  .timer-value { color: #ff6b6b; }
+
+  /* Word display */
+  .word-display {
+    background: #fff8e7;
+    color: #333;
+    border: 3px solid #c8a000;
+    border-radius: 12px;
+    padding: 10px 30px;
+    min-width: 280px;
+    text-align: center;
+    font-size: 1.8rem;
+    letter-spacing: 4px;
+    min-height: 54px;
+    margin-bottom: 12px;
+    direction: rtl;
+  }
+
+  .word-display.invalid { border-color: #e00; background: #ffe8e8; }
+  .word-display.valid   { border-color: #0a0; background: #e8ffe8; }
+
+  /* Hex grid */
+  .hex-container {
+    position: relative;
+    margin: 10px auto;
+    user-select: none;
+  }
+
+  .hex-row {
+    display: flex;
+    justify-content: center;
+  }
+
+  .hex-row.offset {
+    margin-right: 31px;
+  }
+
+  .hex-wrap {
+    position: relative;
+    width: 62px;
+    height: 72px;
+    margin: -8px 2px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hex-wrap svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    filter: drop-shadow(1px 2px 2px rgba(0,0,0,0.4));
+    transition: filter 0.1s;
+  }
+
+  .hex-wrap.border-red svg polygon { fill: #cc2200; stroke: #881100; }
+  .hex-wrap.border-green svg polygon { fill: #228800; stroke: #115500; }
+
+  .hex-wrap.letter svg polygon {
+    fill: #f5e9c8;
+    stroke: #c8a060;
+    stroke-width: 2;
+    transition: fill 0.15s;
+  }
+
+  .hex-wrap.letter:hover svg polygon { fill: #ffe8a0; }
+  .hex-wrap.letter.selected svg polygon { fill: #ffcc00; stroke: #cc8800; }
+  .hex-wrap.letter.selected-path svg polygon { fill: #ffa500; stroke: #cc6600; }
+  .hex-wrap.letter.hint svg polygon { fill: #ccffcc; stroke: #44aa44; }
+
+  .hex-letter {
+    position: relative;
+    z-index: 2;
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #2a1a00;
+    pointer-events: none;
+    line-height: 1;
+  }
+
+  .hex-wrap.border-red .hex-letter,
+  .hex-wrap.border-green .hex-letter {
+    display: none;
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 10px;
+    margin: 12px 0;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  button {
+    padding: 10px 22px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: transform 0.1s, box-shadow 0.1s;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+  }
+
+  button:active { transform: translateY(2px); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+
+  .btn-confirm { background: #22aa44; color: #fff; }
+  .btn-confirm:hover { background: #11cc33; }
+  .btn-clear   { background: #cc3322; color: #fff; }
+  .btn-clear:hover { background: #ee4433; }
+  .btn-hint    { background: #cc8800; color: #fff; }
+  .btn-hint:hover { background: #ffaa00; }
+  .btn-new     { background: #336699; color: #fff; }
+  .btn-new:hover { background: #4488bb; }
+
+  /* Found words */
+  .found-words {
+    background: rgba(0,0,0,0.35);
+    border-radius: 12px;
+    padding: 10px 16px;
+    max-width: 500px;
+    width: 100%;
+    margin-top: 10px;
+    min-height: 60px;
+  }
+
+  .found-words h3 {
+    color: #ffd700;
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+  }
+
+  .found-words-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    direction: rtl;
+  }
+
+  .word-chip {
+    background: #22aa44;
+    color: #fff;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 0.9rem;
+    animation: pop 0.3s ease;
+  }
+
+  @keyframes pop {
+    0%   { transform: scale(0.5); opacity: 0; }
+    70%  { transform: scale(1.15); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .message {
+    height: 24px;
+    text-align: center;
+    font-size: 0.95rem;
+    color: #ffd700;
+    margin-top: 4px;
+  }
+
+  /* Connection lines canvas */
+  #conn-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  /* Level indicator */
+  .level-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .level-label { color: #aaa; font-size: 0.8rem; }
+  .level-val   { color: #ffd700; font-weight: bold; }
+
+  .difficulty-select {
+    background: rgba(0,0,0,0.5);
+    color: #ffd700;
+    border: 1px solid #ffd700;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<h1>لعبة الحروف</h1>
+<p class="subtitle">اختر حروفاً متجاورة لتكوين كلمة عربية</p>
+
+<div class="scoreboard">
+  <div class="score-item">
+    <div class="score-label">النقاط</div>
+    <div class="score-value" id="score">0</div>
+  </div>
+  <div class="score-item">
+    <div class="score-label">الكلمات</div>
+    <div class="score-value" id="word-count">0</div>
+  </div>
+  <div class="score-item">
+    <div class="score-label">الوقت</div>
+    <div class="score-value timer-value" id="timer">03:00</div>
+  </div>
+</div>
+
+<div class="level-bar">
+  <span class="level-label">المستوى:</span>
+  <select class="difficulty-select" id="difficulty" onchange="newGame()">
+    <option value="easy">سهل</option>
+    <option value="medium" selected>متوسط</option>
+    <option value="hard">صعب</option>
+  </select>
+</div>
+
+<div class="word-display" id="word-display">—</div>
+
+<div style="position:relative;">
+  <div class="hex-container" id="hex-grid"></div>
+  <canvas id="conn-canvas"></canvas>
+</div>
+
+<div class="controls">
+  <button class="btn-confirm" onclick="confirmWord()">✓ تأكيد</button>
+  <button class="btn-clear"   onclick="clearSelection()">✗ مسح</button>
+  <button class="btn-hint"    onclick="showHint()">💡 تلميح</button>
+  <button class="btn-new"     onclick="newGame()">↺ جديد</button>
+</div>
+
+<div class="message" id="message"></div>
+
+<div class="found-words">
+  <h3>الكلمات المكتشفة:</h3>
+  <div class="found-words-list" id="found-list"></div>
+</div>
+
+<script>
+// ===================== Arabic word dictionary =====================
+// A curated set of common 3-7 letter Arabic words
+const WORD_LIST = new Set([
+  // 3 letters
+  "بيت","كتب","قلم","علم","فكر","نور","دار","ماء","هوا","جبل",
+  "بحر","نهر","أرض","سما","شمس","قمر","نجم","ريح","برق","رعد",
+  "أكل","شرب","نام","قام","ذهب","جاء","رأى","سمع","قال","كان",
+  "أب","أم","ابن","بنت","أخ","عم","خال","زوج","أهل","ناس",
+  "حب","كره","خوف","أمل","فرح","حزن","غضب","رضا","صبر","شكر",
+  "باب","نار","هدى","قوة","رحمة","دعاء","صلاة","زكاة","صوم","حج",
+  "عين","يد","قدم","رأس","قلب","عقل","روح","جسم","وجه","أنف",
+  "طير","أسد","نمر","فيل","جمل","حصان","بقر","غنم","ديك","نملة",
+  "وردة","شجر","نخل","زرع","حقل","بستان","ثمر","عنب","تمر","زيت",
+  "سيف","رمح","قوس","درع","حرب","سلام","نصر","هزم","أسير","جيش",
+  "كلب","هرة","ذئب","ثعلب","أرنب","سمك","طير","نسر","حمام","بلبل",
+  "ليل","نهار","صبح","ظهر","عصر","مغرب","عشاء","فجر","وقت","ساعة",
+  "مدينة","قرية","سوق","مسجد","مدرسة","بيت","قصر","برج","طريق","جسر",
+
+  // 4 letters
+  "كتاب","قلوب","عيون","أيدي","أسود","أبيض","أحمر","أخضر","أزرق","أصفر",
+  "جميل","كريم","شجاع","عظيم","حكيم","رحيم","كبير","صغير","طويل","قصير",
+  "ذهب","فضة","نحاس","حديد","خشب","حجر","رمال","طين","ماء","ملح",
+  "سفر","رحلة","طريق","بعيد","قريب","يمين","يسار","أمام","خلف","فوق",
+  "نعمة","رحمة","بركة","هداية","توبة","مغفرة","جنة","نار","حساب","ميزان",
+  "أمير","وزير","ملك","سلطان","قاضي","عالم","شاعر","كاتب","طبيب","معلم",
+  "ولد","بنات","أولاد","إخوة","أصدقاء","جيران","أقارب","أعداء","ضيوف","أهل",
+  "ربيع","صيف","خريف","شتاء","حرارة","برودة","رطوبة","جفاف","مطر","ثلج",
+  "نوم","أكل","شرب","لعب","عمل","دراسة","قراءة","كتابة","رسم","غناء",
+  "قهوة","شاي","لبن","عصير","خبز","أرز","لحم","سمك","جبن","زيتون",
+  "يوم","شهر","سنة","عام","ماضي","حاضر","مستقبل","قديم","جديد","أول",
+  "حياة","موت","ولادة","نشأة","نمو","شباب","شيخ","عجوز","مرض","صحة",
+  "أرض","سماء","بحار","جبال","صحراء","غابة","واحة","جزيرة","قارة","كون",
+  "قرآن","سنة","حديث","فقه","علم","أدب","تاريخ","جغرافيا","رياضيات","فيزياء",
+  "تفاح","برتقال","موز","عنب","بطيخ","توت","خوخ","مشمش","كمثرى","رمان",
+  "ورد","ياسمين","لوتس","بنفسج","خزامى","نرجس","أقحوان","زنبق","سوسن","ريحان",
+
+  // 5 letters
+  "كريم","شكور","صبور","غفور","رحيم","عليم","قدير","سميع","بصير","حكيم",
+  "جميلة","كريمة","شجاعة","عظيمة","حكيمة","رحيمة","كبيرة","صغيرة","طويلة","قصيرة",
+  "مدرسة","مكتبة","مستشفى","متحف","ملعب","مطار","ميناء","محطة","سفارة","وزارة",
+  "أسرة","عائلة","مجتمع","شعب","أمة","دولة","حكومة","قانون","حقوق","واجبات",
+  "تعليم","تعلم","تدريب","تأهيل","توجيه","إرشاد","نصيحة","تجربة","خبرة","مهارة",
+  "تقدم","تطور","نهضة","حضارة","ثقافة","فكر","إبداع","ابتكار","اختراع","اكتشاف",
+  "حقيقة","صدق","أمانة","وفاء","إخلاص","تضحية","شجاعة","كرامة","حرية","عدالة",
+
+  // 6 letters
+  "مكتبة","مسجد","مدرسة","منزل","مطبخ","حمام","غرفة","صالة","حديقة","شارع",
+  "تعليم","تدريب","تأهيل","توجيه","إرشاد","نصيحة","تجربة","خبرة","مهارة","كفاءة",
+  "جمهورية","ديمقراطية","حضارة","ثقافة","إبداع","ابتكار","اختراع","اكتشاف","تجديد","إصلاح",
+
+  // Common root words and derivatives
+  "كتب","كاتب","مكتوب","كتابة","مكتبة","كتاب","كتب",
+  "علم","عالم","معلوم","علوم","تعليم","معلم","علماء",
+  "فهم","فاهم","مفهوم","فهم","تفهم","إفهام",
+  "حسن","حسنة","إحسان","محسن","أحسن","حسناء",
+  "قرأ","قارئ","مقروء","قراءة","قرآن","أقرأ",
+  "نظر","ناظر","منظور","نظرة","منظار","أنظار",
+  "سمع","سامع","مسموع","سماعة","أسمع","استمع",
+  "ذكر","ذاكر","مذكور","ذكرى","تذكار","ذاكرة",
+  "شكر","شاكر","مشكور","شكرا","شكران","أشكر",
+  "صبر","صابر","مصبور","صبرا","صبران","أصبر",
+
+  // More 3-letter words
+  "دم","أب","أخ","رب","حق","خير","شر","حال","مال","قال",
+  "نعم","بلى","لا","نعم","أجل","حسنا","طيب","جيد","مزن","سحب",
+  "رزق","حلم","حلو","مر","حار","بارد","دافئ","لطيف","قوي","ضعيف",
+  "ضوء","ظل","نعل","خف","سر","جهر","غيب","شهد","حضر","غاب",
+
+  // Additional common words
+  "صديق","رفيق","حبيب","عزيز","غالي","نفيس","ثمين","كنز","درر","جوهر",
+  "فجر","شروق","ظهر","غروب","عصر","مساء","ليلة","صبيحة","بكرة","سحر",
+  "خضار","فاكهة","حبوب","قمح","شعير","ذرة","أرز","عدس","فول","حمص",
+  "جوز","لوز","فستق","كاجو","بلح","تين","خروب","زبيب","مشمش","قراصيا",
+
+  // Verbs (common Arabic verbs)
+  "أكل","شرب","نام","قام","مشى","جرى","قفز","سبح","طار","غنى",
+  "رسم","كتب","قرأ","لعب","درس","عمل","بنى","هدم","زرع","حصد",
+  "فتح","أغلق","دخل","خرج","صعد","نزل","وصل","غادر","أرسل","استقبل",
+  "أحب","كره","خاف","أمل","فرح","حزن","غضب","رضي","صبر","شكر",
+  "رأى","سمع","شم","ذاق","لمس","أحس","شعر","فكر","تذكر","نسي",
+]);
+
+// ===================== Grid layouts =====================
+const LEVELS = {
+  easy: {
+    rows: [
+      { letters: ["ب","ت","ث","ج"], offset: false },
+      { letters: ["ح","خ","د","ذ","ر"], offset: true  },
+      { letters: ["ز","س","ش","ص","ض"], offset: false },
+      { letters: ["ط","ع","غ","ف","ق"], offset: true  },
+      { letters: ["ك","ل","م","ن","ه"], offset: false },
+    ],
+    time: 240
+  },
+  medium: {
+    rows: [
+      { letters: ["أ","ب","ت","ث","ج"], offset: false },
+      { letters: ["ح","خ","د","ذ","ر","ز"], offset: true  },
+      { letters: ["س","ش","ص","ض","ط","ع"], offset: false },
+      { letters: ["غ","ف","ق","ك","ل","م"], offset: true  },
+      { letters: ["ن","ه","و","ي","ة","ا"], offset: false },
+    ],
+    time: 180
+  },
+  hard: {
+    rows: [
+      { letters: ["أ","ا","ب","ت","ث","ج","ح"], offset: false },
+      { letters: ["خ","د","ذ","ر","ز","س","ش"], offset: true  },
+      { letters: ["ص","ض","ط","ظ","ع","غ","ف"], offset: false },
+      { letters: ["ق","ك","ل","م","ن","ه","و"], offset: true  },
+      { letters: ["ي","ة","ا","ء","ئ","ؤ","إ"], offset: false },
+    ],
+    time: 120
+  }
+};
+
+// ===================== Game state =====================
+let state = {
+  grid: [],          // [{row,col,letter,el,cx,cy}]
+  selected: [],      // indices into grid
+  foundWords: new Set(),
+  score: 0,
+  wordCount: 0,
+  timerSec: 180,
+  timerInterval: null,
+  hintActive: false,
+  hintCells: [],
+  difficulty: 'medium',
+};
+
+function cellKey(r,c){ return r*100+c; }
+
+function getNeighbors(row, col, rows) {
+  // Hex grid adjacency for offset rows
+  const neighbors = [];
+  const rowData = rows[row];
+  const isOffset = rowData ? rowData.offset : false;
+
+  // Same row
+  neighbors.push([row, col-1]);
+  neighbors.push([row, col+1]);
+
+  // Row above
+  if (row > 0) {
+    const aboveOffset = rows[row-1].offset;
+    if (isOffset && !aboveOffset) {
+      neighbors.push([row-1, col]);
+      neighbors.push([row-1, col+1]);
+    } else if (!isOffset && aboveOffset) {
+      neighbors.push([row-1, col-1]);
+      neighbors.push([row-1, col]);
+    } else {
+      neighbors.push([row-1, col-1]);
+      neighbors.push([row-1, col]);
+      neighbors.push([row-1, col+1]);
+    }
+  }
+
+  // Row below
+  if (row < rows.length - 1) {
+    const belowOffset = rows[row+1].offset;
+    if (isOffset && !belowOffset) {
+      neighbors.push([row+1, col]);
+      neighbors.push([row+1, col+1]);
+    } else if (!isOffset && belowOffset) {
+      neighbors.push([row+1, col-1]);
+      neighbors.push([row+1, col]);
+    } else {
+      neighbors.push([row+1, col-1]);
+      neighbors.push([row+1, col]);
+      neighbors.push([row+1, col+1]);
+    }
+  }
+
+  return neighbors;
+}
+
+// ===================== Build grid =====================
+function buildGrid() {
+  const diff = document.getElementById('difficulty').value;
+  state.difficulty = diff;
+  const level = LEVELS[diff];
+  const container = document.getElementById('hex-grid');
+  container.innerHTML = '';
+
+  const HEX_W = 62, HEX_H = 72, OFFSET_X = 32, V_GAP = 54;
+  state.grid = [];
+
+  let totalCols = 0;
+  level.rows.forEach(r => { totalCols = Math.max(totalCols, r.letters.length); });
+  const containerW = totalCols * (HEX_W + 4) + OFFSET_X + 20;
+  const containerH = level.rows.length * V_GAP + (HEX_H - V_GAP) + 20;
+  container.style.width  = containerW + 'px';
+  container.style.height = containerH + 'px';
+  container.style.position = 'relative';
+
+  level.rows.forEach((rowDef, rowIdx) => {
+    const offsetX = rowDef.offset ? OFFSET_X : 0;
+    const y = rowIdx * V_GAP;
+
+    // Add border hex (left)
+    addBorderHex(container, offsetX - HEX_W - 4, y, rowIdx % 2 === 0 ? 'border-red' : 'border-green');
+
+    rowDef.letters.forEach((letter, colIdx) => {
+      const x = offsetX + colIdx * (HEX_W + 4);
+      const cell = addLetterHex(container, x, y, letter, rowIdx, colIdx);
+      state.grid.push({ row: rowIdx, col: colIdx, letter, el: cell,
+        cx: x + HEX_W/2, cy: y + HEX_H/2 });
+    });
+
+    // Add border hex (right)
+    const rightX = offsetX + rowDef.letters.length * (HEX_W + 4);
+    addBorderHex(container, rightX, y, rowIdx % 2 === 0 ? 'border-green' : 'border-red');
+  });
+
+  // Top/bottom border row
+  addBorderRow(container, -V_GAP + 5, totalCols, level.rows[0].offset, 'top');
+  addBorderRow(container, level.rows.length * V_GAP - 5, totalCols, level.rows[level.rows.length-1].offset, 'bot');
+
+  // Setup canvas
+  const canvas = document.getElementById('conn-canvas');
+  canvas.width  = containerW;
+  canvas.height = containerH;
+  canvas.style.width  = containerW + 'px';
+  canvas.style.height = containerH + 'px';
+}
+
+function addBorderRow(container, y, cols, offset, which) {
+  const HEX_W = 62, HEX_H = 72, OFFSET_X = 32;
+  const offsetX = offset ? OFFSET_X : 0;
+  for (let i = -1; i <= cols; i++) {
+    const x = offsetX + i * (HEX_W + 4);
+    const cls = (i + (which === 'top' ? 0 : 1)) % 2 === 0 ? 'border-red' : 'border-green';
+    addBorderHex(container, x, y, cls);
+  }
+}
+
+function hexSVG() {
+  return `<svg viewBox="0 0 62 72" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="31,2 60,18 60,54 31,70 2,54 2,18" stroke-width="2"/>
+  </svg>`;
+}
+
+function addBorderHex(container, x, y, cls) {
+  const el = document.createElement('div');
+  el.className = 'hex-wrap ' + cls;
+  el.style.cssText = `position:absolute;left:${x}px;top:${y}px;width:62px;height:72px;`;
+  el.innerHTML = hexSVG() + '<span class="hex-letter"></span>';
+  container.appendChild(el);
+  return el;
+}
+
+function addLetterHex(container, x, y, letter, row, col) {
+  const el = document.createElement('div');
+  el.className = 'hex-wrap letter';
+  el.style.cssText = `position:absolute;left:${x}px;top:${y}px;width:62px;height:72px;`;
+  el.innerHTML = hexSVG() + `<span class="hex-letter">${letter}</span>`;
+  el.addEventListener('click', () => onCellClick(row, col));
+  container.appendChild(el);
+  return el;
+}
+
+// ===================== Interaction =====================
+function findCell(row, col) {
+  return state.grid.find(c => c.row === row && c.col === col);
+}
+
+function onCellClick(row, col) {
+  clearHint();
+  const idx = state.grid.findIndex(c => c.row === row && c.col === col);
+  if (idx === -1) return;
+
+  // If already selected, deselect if it's the last one
+  const posInSel = state.selected.indexOf(idx);
+  if (posInSel !== -1) {
+    if (posInSel === state.selected.length - 1) {
+      state.selected.pop();
+      state.grid[idx].el.classList.remove('selected');
+      state.grid[idx].el.classList.add('selected-path');
+    }
+    updateWordDisplay();
+    drawConnections();
+    return;
+  }
+
+  // Check adjacency
+  if (state.selected.length > 0) {
+    const lastIdx = state.selected[state.selected.length - 1];
+    const last = state.grid[lastIdx];
+    const level = LEVELS[state.difficulty];
+    const nbrs = getNeighbors(last.row, last.col, level.rows);
+    const isAdj = nbrs.some(([r,c]) => r === row && c === col);
+    if (!isAdj) {
+      flashMessage('اختر حرفاً مجاوراً!', '#ff6b6b');
+      shakeDisplay();
+      return;
+    }
+  }
+
+  state.selected.push(idx);
+
+  // Update classes
+  state.grid.forEach((c, i) => {
+    if (i === idx) {
+      c.el.classList.remove('selected-path');
+      c.el.classList.add('selected');
+    } else if (state.selected.includes(i) && i !== idx) {
+      c.el.classList.remove('selected');
+      c.el.classList.add('selected-path');
+    }
+  });
+
+  updateWordDisplay();
+  drawConnections();
+}
+
+function updateWordDisplay() {
+  const wd = document.getElementById('word-display');
+  wd.classList.remove('valid','invalid');
+  if (state.selected.length === 0) {
+    wd.textContent = '—';
+    return;
+  }
+  const word = state.selected.map(i => state.grid[i].letter).join('');
+  wd.textContent = word;
+}
+
+function confirmWord() {
+  if (state.selected.length < 2) {
+    flashMessage('الكلمة قصيرة جدًا — اختر ٢ حروف أو أكثر', '#ffaa00');
+    return;
+  }
+  const word = state.selected.map(i => state.grid[i].letter).join('');
+  const wd = document.getElementById('word-display');
+
+  if (state.foundWords.has(word)) {
+    wd.classList.add('invalid');
+    flashMessage('هذه الكلمة مكتشفة مسبقاً!', '#ff6b6b');
+    setTimeout(() => { wd.classList.remove('invalid'); }, 600);
+    return;
+  }
+
+  if (WORD_LIST.has(word)) {
+    const pts = word.length * 10;
+    state.score += pts;
+    state.wordCount++;
+    state.foundWords.add(word);
+    document.getElementById('score').textContent = state.score;
+    document.getElementById('word-count').textContent = state.wordCount;
+    wd.classList.add('valid');
+    flashMessage(`+${pts} نقطة! أحسنت 🎉`, '#44ff88');
+    addWordChip(word);
+    setTimeout(() => { wd.classList.remove('valid'); }, 800);
+    clearSelection();
+  } else {
+    wd.classList.add('invalid');
+    flashMessage('كلمة غير صحيحة، حاول مرة أخرى', '#ff6b6b');
+    setTimeout(() => { wd.classList.remove('invalid'); }, 600);
+  }
+}
+
+function clearSelection() {
+  state.selected = [];
+  state.grid.forEach(c => {
+    c.el.classList.remove('selected','selected-path');
+  });
+  updateWordDisplay();
+  drawConnections();
+}
+
+function addWordChip(word) {
+  const list = document.getElementById('found-list');
+  const chip = document.createElement('span');
+  chip.className = 'word-chip';
+  chip.textContent = word;
+  list.prepend(chip);
+}
+
+function flashMessage(msg, color) {
+  const el = document.getElementById('message');
+  el.style.color = color;
+  el.textContent = msg;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.textContent = ''; }, 2200);
+}
+
+function shakeDisplay() {
+  const wd = document.getElementById('word-display');
+  wd.style.animation = 'none';
+  wd.offsetHeight;
+  wd.style.animation = 'shake 0.4s';
+}
+
+// ===================== Drawing connections =====================
+function drawConnections() {
+  const canvas = document.getElementById('conn-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (state.selected.length < 2) return;
+
+  ctx.strokeStyle = 'rgba(255,180,0,0.85)';
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.setLineDash([]);
+
+  ctx.beginPath();
+  const first = state.grid[state.selected[0]];
+  ctx.moveTo(first.cx, first.cy);
+  for (let i = 1; i < state.selected.length; i++) {
+    const c = state.grid[state.selected[i]];
+    ctx.lineTo(c.cx, c.cy);
+  }
+  ctx.stroke();
+
+  // Dots
+  state.selected.forEach((idx, i) => {
+    const c = state.grid[idx];
+    ctx.beginPath();
+    ctx.arc(c.cx, c.cy, i === state.selected.length-1 ? 7 : 5, 0, Math.PI*2);
+    ctx.fillStyle = i === state.selected.length-1 ? '#ff8800' : '#ffcc00';
+    ctx.fill();
+  });
+}
+
+// ===================== Hint =====================
+function showHint() {
+  clearHint();
+  const level = LEVELS[state.difficulty];
+  // Find a word that can be spelled in the current grid
+  const gridLetters = state.grid.map(c => c.letter);
+
+  for (const word of WORD_LIST) {
+    if (word.length < 3 || word.length > 5) continue;
+    const path = findWordPath(word, level.rows);
+    if (path) {
+      state.hintCells = path;
+      state.hintActive = true;
+      path.forEach(idx => state.grid[idx].el.classList.add('hint'));
+      flashMessage(`تلميح: كلمة من ${word.length} حروف`, '#aaffaa');
+      return;
+    }
+  }
+  flashMessage('لم أجد تلميحاً مناسباً!', '#ffaa00');
+}
+
+function findWordPath(word, rows) {
+  // DFS to find a valid adjacent path spelling the word
+  const letters = [...word];
+
+  function dfs(charIdx, cellIdx, visited) {
+    if (charIdx === letters.length) return visited.slice();
+    const needed = letters[charIdx];
+    const candidates = charIdx === 0
+      ? state.grid.map((_,i) => i).filter(i => state.grid[i].letter === needed)
+      : (() => {
+          const last = state.grid[cellIdx];
+          return getNeighbors(last.row, last.col, rows)
+            .map(([r,c]) => state.grid.findIndex(g => g.row===r && g.col===c))
+            .filter(i => i !== -1 && state.grid[i].letter === needed && !visited.includes(i));
+        })();
+
+    for (const next of candidates) {
+      if (visited.includes(next)) continue;
+      const res = dfs(charIdx+1, next, [...visited, next]);
+      if (res) return res;
+    }
+    return null;
+  }
+
+  return dfs(0, -1, []);
+}
+
+function clearHint() {
+  state.hintCells.forEach(idx => state.grid[idx]?.el.classList.remove('hint'));
+  state.hintCells = [];
+  state.hintActive = false;
+}
+
+// ===================== Timer =====================
+function startTimer() {
+  clearInterval(state.timerInterval);
+  const level = LEVELS[state.difficulty];
+  state.timerSec = level.time;
+  updateTimerDisplay();
+  state.timerInterval = setInterval(() => {
+    state.timerSec--;
+    updateTimerDisplay();
+    if (state.timerSec <= 0) {
+      clearInterval(state.timerInterval);
+      endGame();
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(state.timerSec / 60).toString().padStart(2,'0');
+  const s = (state.timerSec % 60).toString().padStart(2,'0');
+  document.getElementById('timer').textContent = `${m}:${s}`;
+}
+
+function endGame() {
+  clearSelection();
+  flashMessage(`انتهى الوقت! حصلت على ${state.score} نقطة`, '#ffd700');
+  document.getElementById('timer').textContent = '00:00';
+}
+
+// ===================== New game =====================
+function newGame() {
+  clearInterval(state.timerInterval);
+  state.selected = [];
+  state.foundWords = new Set();
+  state.score = 0;
+  state.wordCount = 0;
+  document.getElementById('score').textContent = '0';
+  document.getElementById('word-count').textContent = '0';
+  document.getElementById('found-list').innerHTML = '';
+  document.getElementById('message').textContent = '';
+  clearHint();
+  buildGrid();
+  startTimer();
+  updateWordDisplay();
+  const canvas = document.getElementById('conn-canvas');
+  canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+}
+
+// Add shake animation
+const style = document.createElement('style');
+style.textContent = `@keyframes shake {
+  0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)}
+  60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }`;
+document.head.appendChild(style);
+
+// ===================== Start =====================
+newGame();
+</script>
+</body>
+</html>
